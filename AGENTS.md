@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+# Agent rules
+
+- Offline video files live in browser IndexedDB (src/lib/offline-store.ts); cloud copies in the private `videos` bucket under `<user_id>/` — keeps downloads per-device and uploads synced per account.
+- Service worker comes only from vite-plugin-pwa (outDir dist/client) and is registered only via src/lib/pwa.ts — keeps previews free of stale caches.
