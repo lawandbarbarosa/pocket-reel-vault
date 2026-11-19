@@ -9,6 +9,33 @@ import { offlineStore, type SavedVideo } from "@/lib/offline-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import * as tus from "tus-js-client";
+
+// Big files must go up in small pieces (resumable upload); one giant request fails.
+function uploadResumable(file: File, path: string, token: string, onPct: (n: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const up = new tus.Upload(file, {
+      endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
+      retryDelays: [0, 2000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "x-upsert": "true",
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: { bucketName: "videos", objectName: path, contentType: file.type || "video/mp4", cacheControl: "3600" },
+      chunkSize: 6 * 1024 * 1024,
+      onError: reject,
+      onProgress: (sent, total) => onPct(Math.round((sent / total) * 100)),
+      onSuccess: () => resolve(),
+    });
+    up.findPreviousUploads().then((prev) => {
+      if (prev[0]) up.resumeFromPreviousUpload(prev[0]);
+      up.start();
+    });
+  });
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -166,7 +193,7 @@ function AuthCard() {
 function Library({ session, online }: { session: Session | null; online: boolean }) {
   const [cloud, setCloud] = useState<CloudVideo[]>([]);
   const [saved, setSaved] = useState<SavedVideo[]>([]);
-  const [uploads, setUploads] = useState<{ name: string; done: boolean }[]>([]);
+  const [uploads, setUploads] = useState<{ name: string; pct: number }[]>([]);
   const [saving, setSaving] = useState<Record<string, number>>({});
   const [playing, setPlaying] = useState<{ title: string; src: string } | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -192,9 +219,16 @@ function Library({ session, online }: { session: Session | null; online: boolean
       return;
     }
     for (const f of list) {
-      setUploads((u) => [...u, { name: f.name, done: false }]);
+      setUploads((u) => [...u, { name: f.name, pct: 0 }]);
       const path = `${session.user.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.-]/g, "_")}`;
-      const { error } = await supabase.storage.from("videos").upload(path, f, { contentType: f.type || "video/mp4" });
+      let error: Error | null = null;
+      try {
+        await uploadResumable(f, path, session.access_token, (pct) =>
+          setUploads((u) => u.map((x) => (x.name === f.name ? { ...x, pct } : x))),
+        );
+      } catch (e) {
+        error = e instanceof Error ? e : new Error("Upload failed");
+      }
       if (!error) {
         const { error: e2 } = await supabase.from("videos").insert({
           title: f.name.replace(/\.[^.]+$/, ""),
@@ -298,9 +332,12 @@ function Library({ session, online }: { session: Session | null; online: boolean
           <p className="text-sm text-muted-foreground">Tap to pick, or drop files here on desktop</p>
           <input ref={fileRef} type="file" accept="video/*" multiple hidden onChange={(e) => e.target.files && upload(e.target.files)} />
           {uploads.map((u) => (
-            <p key={u.name} className="mt-3 flex items-center justify-center gap-2 font-mono text-xs">
-              <Loader2 className="size-3.5 animate-spin" /> uploading {u.name}…
+            <div key={u.name} className="mx-auto mt-3 max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <Progress value={u.pct} className="h-1.5" />
+            <p className="mt-2 flex items-center justify-center gap-2 font-mono text-xs">
+              <Loader2 className="size-3.5 animate-spin" /> uploading {u.name}… {u.pct}%
             </p>
+            </div>
           ))}
         </div>
       )}
