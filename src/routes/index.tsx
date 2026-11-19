@@ -15,11 +15,11 @@ import * as tus from "tus-js-client";
 function uploadResumable(file: File, path: string, token: string, onPct: (n: number) => void) {
   return new Promise<void>((resolve, reject) => {
     const up = new tus.Upload(file, {
-      endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
+      endpoint: `${import.meta.env['VITE_SUPABASE_URL']}/storage/v1/upload/resumable`,
       retryDelays: [0, 2000, 5000, 10000, 20000],
       headers: {
         authorization: `Bearer ${token}`,
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        apikey: import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'],
         "x-upsert": "true",
       },
       uploadDataDuringCreation: true,
