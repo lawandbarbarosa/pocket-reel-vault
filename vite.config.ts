@@ -37,7 +37,7 @@ export default defineConfig({
               urlPattern: ({ request, url }) =>
                 request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
               handler: "NetworkFirst",
-              options: { cacheName: "pages", networkTimeoutSeconds: 3 },
+              options: { cacheName: "pages", networkTimeoutSeconds: 3, matchOptions: { ignoreSearch: true } },
             },
             {
               urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/assets/"),

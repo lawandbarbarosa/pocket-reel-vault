@@ -37,5 +37,12 @@ export function registerAppServiceWorker() {
     void unregisterAppWorkers();
     return;
   }
-  void navigator.serviceWorker.register("/sw.js");
+  void navigator.serviceWorker.register("/sw.js").then(async () => {
+    // Save the start page right away so the app opens offline even after just one visit.
+    await navigator.serviceWorker.ready;
+    if ("caches" in window) {
+      const c = await caches.open("pages");
+      await c.add("/").catch(() => {});
+    }
+  });
 }

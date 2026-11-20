@@ -95,17 +95,17 @@ function Index() {
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 pb-24 pt-6 sm:px-8">
-      <header className="mb-8 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="grid size-10 place-items-center rounded-full bg-primary text-primary-foreground">
+      <header className="mb-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
             <Play className="size-5 fill-current" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="font-display text-2xl font-extrabold tracking-tight">Reel</h1>
             <p className="font-mono text-xs text-muted-foreground">your video vault</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {!online && (
             <span className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 font-mono text-xs">
               <WifiOff className="size-3.5" /> offline
@@ -113,7 +113,7 @@ function Index() {
           )}
           {session && online && (
             <Button variant="ghost" size="sm" onClick={() => supabase.auth.signOut()}>
-              <LogOut /> Sign out
+              <LogOut /> <span className="hidden sm:inline">Sign out</span>
             </Button>
           )}
         </div>
@@ -154,8 +154,8 @@ function AuthCard() {
   };
 
   return (
-    <section className="mx-auto mt-10 max-w-md">
-      <h2 className="font-display text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+    <section className="mx-auto mt-4 w-full max-w-md sm:mt-10">
+      <h2 className="font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
         Upload anywhere.
         <br />
         <span className="text-primary">Watch offline.</span>
@@ -163,7 +163,7 @@ function AuthCard() {
       <p className="mt-3 text-muted-foreground">
         Sign in with the same account on your computer and your phone — your videos follow you.
       </p>
-      <div className="mt-8 rounded-2xl border bg-card p-6">
+      <div className="mt-8 rounded-2xl border bg-card p-4 sm:p-6">
         <Button type="button" variant="outline" className="w-full" onClick={google}>
           <svg aria-hidden="true" viewBox="0 0 24 24" className="size-[18px]"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
           Continue with Google
@@ -325,7 +325,7 @@ function Library({ session, online }: { session: Session | null; online: boolean
             void upload(e.dataTransfer.files);
           }}
           onClick={() => fileRef.current?.click()}
-          className={`mb-8 cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${dragging ? "border-primary bg-accent" : "border-border bg-card hover:border-primary"}`}
+          className={`mb-8 cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center sm:p-8 transition-colors ${dragging ? "border-primary bg-accent" : "border-border bg-card hover:border-primary"}`}
         >
           <Upload className="mx-auto size-8 text-primary" />
           <p className="mt-3 font-display text-lg font-semibold">Add videos</p>
@@ -342,7 +342,7 @@ function Library({ session, online }: { session: Session | null; online: boolean
         </div>
       )}
 
-      <div className="mb-4 flex items-baseline justify-between">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-xl font-bold">{online ? "All your videos" : "Saved on this device"}</h2>
         <span className="font-mono text-xs text-muted-foreground">{saved.length} saved offline</span>
       </div>
@@ -352,28 +352,28 @@ function Library({ session, online }: { session: Session | null; online: boolean
           {online ? "No videos yet. Add one above." : "Nothing saved on this device yet. Go online and tap the download button on a video."}
         </p>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {items.map((v) => {
             const isSaved = savedIds.has(v.id);
             const pct = saving[v.id];
             return (
-              <li key={v.id} className="group flex items-center gap-4 rounded-2xl border bg-card p-3">
+              <li key={v.id} className="group flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-3 sm:gap-4">
                 <button
                   onClick={() => play(v.id, v.title, v.storage_path)}
-                  className="grid size-16 shrink-0 place-items-center rounded-xl bg-secondary text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                  className="grid size-12 shrink-0 sm:size-16 place-items-center rounded-xl bg-secondary text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
                   aria-label={`Play ${v.title}`}
                 >
                   <Play className="size-6 fill-current" />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{v.title}</p>
+                  <p className="truncate text-sm font-semibold sm:text-base">{v.title}</p>
                   <p className="font-mono text-xs text-muted-foreground">
                     {fmtSize(v.size_bytes)}
                     {isSaved && <span className="ml-2 text-primary">● on device</span>}
                   </p>
                   {pct !== undefined && <Progress value={pct} className="mt-2 h-1.5" />}
                 </div>
-                <div className="flex shrink-0 gap-1">
+                <div className="flex shrink-0 gap-0.5 sm:gap-1">
                   {isSaved ? (
                     <Button size="icon" variant="ghost" title="Remove from this device" onClick={() => removeFromDevice(v.id)}>
                       <Check className="text-primary" />
