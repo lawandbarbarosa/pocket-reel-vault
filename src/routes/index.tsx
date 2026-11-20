@@ -213,12 +213,14 @@ function Library({ session, online }: { session: Session | null; online: boolean
 
   const upload = async (files: FileList | File[]) => {
     if (!session) return;
-    const list = Array.from(files).filter((f) => f.type.startsWith("video/") || /\.(mp4|mov|mkv|webm|m4v)$/i.test(f.name));
+    const list = Array.from(files).filter((f) => f.type.startsWith("video/") || /\.(mp4|mov|mkv|webm|m4v|avi)$/i.test(f.name));
     if (!list.length) {
       toast.error("Pick a video file.");
       return;
     }
     for (const f of list) {
+      if (/\.mkv$/i.test(f.name))
+        toast.info("MKV files upload fine, but many phones can't play them. MP4 works everywhere.");
       setUploads((u) => [...u, { name: f.name, pct: 0 }]);
       const path = `${session.user.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.-]/g, "_")}`;
       let error: Error | null = null;
@@ -338,7 +340,7 @@ function Library({ session, online }: { session: Session | null; online: boolean
           <Upload className="mx-auto size-8 text-primary" />
           <p className="mt-3 font-display text-lg font-semibold">Add videos</p>
           <p className="text-sm text-muted-foreground">Tap to pick, or drop files here on desktop</p>
-          <input ref={fileRef} type="file" accept="video/*" multiple hidden onChange={(e) => e.target.files && upload(e.target.files)} />
+          <input ref={fileRef} type="file" accept="video/*,.mkv,.mp4,.mov,.webm,.m4v,.avi" multiple hidden onChange={(e) => e.target.files && upload(e.target.files)} />
           {uploads.map((u) => (
             <div key={u.name} className="mx-auto mt-3 max-w-sm" onClick={(e) => e.stopPropagation()}>
             <Progress value={u.pct} className="h-1.5" />
