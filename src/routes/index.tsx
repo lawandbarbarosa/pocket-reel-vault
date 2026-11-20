@@ -249,26 +249,34 @@ function Library({ session, online }: { session: Session | null; online: boolean
     try {
       const { data, error } = await supabase.storage.from("videos").createSignedUrl(v.storage_path, 3600);
       if (error) throw error;
-      const res = await fetch(data.signedUrl);
-      const total = Number(res.headers.get("content-length")) || v.size_bytes;
-      const reader = res.body!.getReader();
-      const chunks: BlobPart[] = [];
-      let got = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        got += value.length;
-        setSaving((s) => ({ ...s, [v.id]: Math.round((got / total) * 100) }));
+      const lock = await (navigator as any).wakeLock?.request("screen").catch(() => null);
+      const meta = { id: v.id, title: v.title, mime_type: v.mime_type, size_bytes: v.size_bytes, created_at: v.created_at };
+      await offlineStore.putMeta({ ...meta, complete: false });
+      const CH = 8 * 1024 * 1024;
+      let { next, bytes } = await offlineStore.progress(v.id);
+      const total = v.size_bytes;
+      try {
+        while (bytes < total) {
+          const end = Math.min(bytes + CH, total) - 1;
+          let blob: Blob | null = null;
+          for (let attempt = 0; attempt < 5 && !blob; attempt++) {
+            try {
+              const res = await fetch(data.signedUrl, { headers: { Range: `bytes=${bytes}-${end}` } });
+              if (!res.ok) throw new Error(`Download failed (${res.status})`);
+              blob = await res.blob();
+            } catch (err) {
+              if (attempt === 4) throw err;
+              await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+            }
+          }
+          await offlineStore.putChunk(v.id, next++, blob!);
+          bytes += blob!.size;
+          setSaving((s) => ({ ...s, [v.id]: Math.round((bytes / total) * 100) }));
+        }
+      } finally {
+        await lock?.release?.().catch(() => {});
       }
-      await offlineStore.put({
-        id: v.id,
-        title: v.title,
-        mime_type: v.mime_type,
-        size_bytes: v.size_bytes,
-        created_at: v.created_at,
-        blob: new Blob(chunks, { type: v.mime_type }),
-      });
+      await offlineStore.putMeta({ ...meta, complete: true });
       toast.success(`"${v.title}" is saved on this device`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save video");
