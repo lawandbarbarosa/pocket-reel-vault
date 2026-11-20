@@ -1,1 +1,7 @@
 project_id = "jwxpkdrvhnixtbtamvdz"
+
+[auth.sessions]
+# Force a fresh login after this long, no matter how active the user is.
+# 720h = 30 days. (Leaving inactivity_timeout unset means an active user is
+# never logged out early — only this 30-day ceiling applies.)
+timebox = "720h"
